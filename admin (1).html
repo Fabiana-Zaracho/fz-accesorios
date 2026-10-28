@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Panel FZ Accesorios</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600&family=Gloock&display=swap">
+<style>
+:root{--bg:#f3f1f6;--card:#fff;--tx:#1d1a2b;--mu:#6f6a80;--ac:#0f6b55;--ln:#e0dce8;--rd:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16141f;--card:#211e2e;--tx:#f0edf7;--mu:#a49fb8;--ac:#3fc29f;--ln:#34304a;--rd:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 Figtree,system-ui,sans-serif}
+main{max-width:760px;margin:auto;padding:16px}h1{font:400 28px Gloock,Georgia,serif;margin:0 0 12px}
+input,select{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px;width:100%}
+button{font:600 14px Figtree,sans-serif;border-radius:10px;border:1px solid var(--ln);background:var(--card);color:var(--tx);padding:9px 12px;cursor:pointer}
+button.b{background:var(--ac);border-color:var(--ac);color:var(--bg)}button.d{color:var(--rd)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.row{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px;margin-bottom:10px;display:flex;gap:10px}
+.row img{width:72px;height:72px;object-fit:cover;border-radius:8px;background:var(--ln)}
+.f{flex:1;display:grid;gap:6px;min-width:0}.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.a{display:flex;gap:6px;flex-wrap:wrap}
+.st{font-size:13px;color:var(--mu)}#msg{padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--ln);margin-bottom:12px;display:none}
+.hide{display:none}
+</style></head><body><main>
+<h1>Panel FZ Accesorios</h1><div id="msg" role="status"></div>
+<section id="login"><div class="f"><input id="em" type="email" placeholder="Correo" autocomplete="username"><input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password"><button class="b" onclick="login()">Entrar</button></div></section>
+<section id="app" class="hide">
+<div class="tabs"><button onclick="tab('add')" id="t-add">Agregar piezas</button><button onclick="tab('list')" id="t-list">Mis piezas</button><button onclick="tab('ped')" id="t-ped">Pedidos</button><button onclick="logout()" style="margin-left:auto">Salir</button></div>
+<div id="v-add"><input id="files" type="file" accept="image/*" multiple><p class="st">Elige una o varias fotos. Se achican solas. Completa nombre y precio de cada una.</p><div id="newl"></div><button class="b hide" id="saveb" onclick="saveAll()" style="width:100%">Guardar todo</button></div>
+<div id="v-list" class="hide"></div><div id="v-ped" class="hide"></div></section>
+<script>
+const C={url:'https://xkwccrzunfvhoqvshigs.supabase.co',key:'sb_publishable_54LL2vf_mtKpsuqjp5uAwg_9Aix6hRw'};
+const CATS=['Cadenas','Aros','Pulseras','Tobilleras','Anillos','Otros'],MATS=['Acero inoxidable','Folheado'];
+let tok=null,Q=[],P=[];
+const $=s=>document.querySelector(s),g=n=>Number(n).toLocaleString('es-PY')+' Gs';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const say=t=>{const m=$('#msg');m.textContent=t;m.style.display=t?'block':'none'};
+try{tok=sessionStorage.getItem('fzt')}catch(e){}
+const api=async(p,o={})=>{const r=await fetch(C.url+p,{...o,headers:{apikey:C.key,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(o.headers||{})}});
+if(r.status===401){logout();throw new Error('Tu sesión venció. Entra de nuevo.')}if(!r.ok)throw new Error(await r.text());return r.json().catch(()=>null)};
+async function login(){try{const r=await fetch(C.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:C.key,'Content-Type':'application/json'},body:JSON.stringify({email:$('#em').value.trim(),password:$('#pw').value})});
+const d=await r.json();if(!d.access_token)throw 0;tok=d.access_token;try{sessionStorage.setItem('fzt',tok)}catch(e){}say('');start()}catch(e){say('Correo o contraseña incorrectos.')}}
+function logout(){tok=null;try{sessionStorage.removeItem('fzt')}catch(e){}$('#app').classList.add('hide');$('#login').classList.remove('hide')}
+function start(){$('#login').classList.add('hide');$('#app').classList.remove('hide');tab('add')}
+function tab(t){['add','list','ped'].forEach(x=>{$('#v-'+x).classList.toggle('hide',x!==t);$('#t-'+x).classList.toggle('on',x===t)});say('');if(t==='list')lista();if(t==='ped')pedidos()}
+const shrink=f=>new Promise(res=>{const i=new Image();i.onload=()=>{const s=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(res,'image/jpeg',.8)};i.src=URL.createObjectURL(f)});
+$('#files').onchange=async e=>{for(const f of e.target.files)Q.push({blob:await shrink(f)});e.target.value='';drawQ()};
+function drawQ(){$('#newl').innerHTML=Q.map((x,i)=>{x.u=x.u||URL.createObjectURL(x.blob);return `<div class="row"><img src="${x.u}" alt=""><div class="f"><input id="n${i}" placeholder="Nombre" value="${esc(x.n||'')}"><div class="g2"><select id="c${i}">${CATS.map(c=>`<option ${c===x.c?'selected':''}>${c}</option>`).join('')}</select><input id="p${i}" type="number" inputmode="numeric" placeholder="Precio Gs" value="${x.p||''}"></div><select id="m${i}" aria-label="Material">${MATS.map(m=>`<option ${m===x.m?'selected':''}>${m}</option>`).join('')}</select><div class="g2"><input id="s${i}" type="number" inputmode="numeric" placeholder="Cantidad" value="${x.s||1}"><button class="d" onclick="keep();Q.splice(${i},1);drawQ()">Quitar</button></div></div></div>`}).join('');$('#saveb').classList.toggle('hide',!Q.length)}
+function keep(){Q.forEach((x,i)=>{x.n=$('#n'+i).value;x.c=$('#c'+i).value;x.p=$('#p'+i).value;x.s=$('#s'+i).value;x.m=$('#m'+i).value})}
+async function saveAll(){keep();if(Q.some(x=>!x.n.trim()||!(x.p>0)))return say('Falta el nombre o el precio de alguna pieza.');
+try{for(const [i,x] of Q.entries()){say(`Subiendo ${i+1} de ${Q.length}...`);const name=crypto.randomUUID()+'.jpg';
+await api('/storage/v1/object/fotos/'+name,{method:'POST',headers:{'Content-Type':'image/jpeg'},body:x.blob});
+await api('/rest/v1/productos',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({nombre:x.n.trim(),categoria:x.c,material:x.m||MATS[0],precio:+x.p,stock:+x.s||1,foto_url:C.url+'/storage/v1/object/public/fotos/'+name})})}
+Q=[];drawQ();say('Piezas guardadas. Ya están en la tienda.')}catch(e){say('No se pudo guardar: '+e.message)}}
+async function lista(){try{P=await api('/rest/v1/productos?select=*&order=created_at.desc');
+$('#v-list').innerHTML=P.length?P.map(p=>`<div class="row"><img src="${esc(p.foto_url||'')}" alt=""><div class="f"><b>${esc(p.nombre)}</b><span class="st">${esc(p.codigo)} · ${esc(p.categoria)} · ${esc(p.material||MATS[0])} · ${p.estado==='vendido'?'Vendido':'Disponible'}</span>
+<div class="g2"><input type="number" value="${p.precio}" onchange="upd('${p.id}',{precio:+this.value})" aria-label="Precio"><input type="number" value="${p.stock}" onchange="upd('${p.id}',{stock:+this.value})" aria-label="Stock"></div>
+<select onchange="upd('${p.id}',{material:this.value})" aria-label="Material">${MATS.map(m=>`<option ${m===(p.material||MATS[0])?'selected':''}>${m}</option>`).join('')}</select><div class="a"><button onclick="upd('${p.id}',{estado:'${p.estado==='vendido'?'disponible':'vendido'}'},1)">${p.estado==='vendido'?'Marcar disponible':'Marcar vendido'}</button><button class="d" onclick="del('${p.id}')">Eliminar</button></div></div></div>`).join(''):'<p class="st">Aún no hay piezas. Súbelas en "Agregar piezas".</p>'}catch(e){say(e.message)}}
+async function upd(id,b,re){try{await api('/rest/v1/productos?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(b)});say('Cambio guardado.');if(re)lista()}catch(e){say(e.message)}}
+async function del(id){if(!confirm('¿Eliminar esta pieza?'))return;try{await api('/rest/v1/productos?id=eq.'+id,{method:'DELETE'});lista()}catch(e){say(e.message)}}
+async function pedidos(){try{const L=await api('/rest/v1/pedidos?estado=eq.pendiente&order=created_at.desc');window.PED=L;
+$('#v-ped').innerHTML=L.length?L.map((o,i)=>`<div class="row"><div class="f"><b>${esc(o.cliente)}</b><span class="st">${new Date(o.created_at).toLocaleString('es-PY')}</span>${o.items.map(x=>`<span>${x.qty} x ${esc(x.nombre)} (${esc(x.codigo)})</span>`).join('')}
+<b>Total ${g(o.total)}${o.descuento?' (con descuento '+g(o.descuento)+')':''}</b><div class="a"><button class="b" onclick="conf(${i})">Confirmar y descontar stock</button><button class="d" onclick="cerrar('${o.id}','cancelado')">Cancelar</button></div></div></div>`).join(''):'<p class="st">No hay pedidos pendientes.</p>'}catch(e){say(e.message)}}
+async function conf(i){const o=PED[i];try{const cur=await api('/rest/v1/productos?select=id,stock');
+for(const it of o.items){const p=cur.find(x=>x.id===it.id);if(p){const s=Math.max(0,p.stock-it.qty);await upd(it.id,s?{stock:s}:{stock:0,estado:'vendido'})}}
+await cerrar(o.id,'confirmado')}catch(e){say(e.message)}}
+async function cerrar(id,estado){try{await api('/rest/v1/pedidos?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({estado})});say('Pedido '+estado+'.');pedidos()}catch(e){say(e.message)}}
+if(tok)start();
+</script></main></body></html>
